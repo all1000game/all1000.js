@@ -1,0 +1,30 @@
+{
+  "name": "All1000.js",
+  "version": "0.0.1",
+  "description": "A roguelike ",
+  "keywords": [
+    "strategy",
+    "automation",
+    "game"
+  ],
+  "homepage": "http://all1000.com/",
+  "bugs": {
+    "url": "https://github.com/all1000game/all1000.js/issues"
+  },
+  "license": "MIT",
+  "author": "Koji Horaguchi <koji.horaguchi@gmail.com> (http://horaguchi.github.io/)",
+  "main": "./all1000.js",
+  "bin": {
+    "all1000": "./all1000-cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:all1000game/all1000.js.git"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "blessed": "~0.0.37"
+  }
+}
