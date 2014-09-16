@@ -1,5 +1,3 @@
 all1000.js
 ==========
-hogehogehoge
-
-fugafugafuga
+http://all1000.com/
