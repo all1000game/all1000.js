@@ -2,11 +2,10 @@
 
 var All1000 = function () {
   this.turn = 0;
-  this.inputNow = "";
-  this.inputQueue = "";
+  this.worker = 0;
   this.techTree = {
     "a" : { "cost": {                }, "count": 10, "amount": 1000000, "auto": { "count": 0, cost: { "a" :10 } }, "time":  1 },
-    "b" : { "cost": { "a": 1         }, "count": 10, "amount":   -1, "auto": { "count": 0, cost: { "b" :10 } }, "time":  2 },
+    "b" : { "cost": { "a": 1         }, "count": 10, "amount":   -1,    "auto": { "count": 0, cost: { "b" :10 } }, "time":  2 },
     "c" : { "cost": { "a": 1, "b": 1 }, "count": 10, "amount":   -1, "auto": { "count": 0, cost: { "c" :10 } }, "time":  3 },
     "d" : { "cost": { "c": 1         }, "count": 10, "amount":   -1, "auto": { "count": 0, cost: { "d" :10 } }, "time":  4 },
     "e" : { "cost": { "d": 1         }, "count": 10, "amount":   -1, "auto": { "count": 0, cost: { "e" :10 } }, "time":  5 },
@@ -36,12 +35,13 @@ var All1000 = function () {
 
   this.history = "";
   this._updateCostString();
+  this.end = false;
 };
 
 All1000.VERSION = "0.0.1";
 
 // the initial seed
-All1000.seed = 6;
+All1000.seed = Math.floor(Math.random() * 10000);
  
 // in order to work 'All1000.seed' must NOT be undefined,
 // so in any case, you HAVE to provide a Math.seed
@@ -58,29 +58,31 @@ All1000.seededRandom = function(max, min) {
 
 All1000.prototype.createTechTree = function () {
   var tech_tree = {};
-  var amount = 1000000000;
+  var amount = 1000000;
   All1000.DISP_ORDER.forEach(function (key, order) {
-    var cost = {};
-    var cost_depends = All1000.DISP_ORDER[Math.floor(All1000.seededRandom(order, 0))];
-    if (cost_depends != key) {
-      cost[cost_depends] = Math.floor(All1000.seededRandom((1 + order) * 1, 0)) + 1;
-      amount = -1;
+    var cost, amount, time, cost_time = 1000;
+    while (cost_time >= (1 + order) * 2) {
+      cost = {};
+      cost_depends = All1000.DISP_ORDER[Math.floor(All1000.seededRandom(order, 0))];
+      if (cost_depends != key) {
+        cost[cost_depends] = Math.floor(All1000.seededRandom((1 + order) * 1, 0)) + 1;
+        amount = -1;
+      } else {
+        amount = 1000000;
+      }
+      time = Math.floor(All1000.seededRandom((1 + order) * 1, 0)) + 1;
+      cost_time = (cost_depends != key ? tech_tree[cost_depends]._costTime * cost[cost_depends] : 1) * time;
     }
-    var time = Math.floor(All1000.seededRandom((1 + order) * 1, 0)) + 1;
-
-    var auto_cost = {};
-    cost_depends = All1000.DISP_ORDER[Math.floor(All1000.seededRandom(1 + order, 0))];
-    auto_cost[cost_depends] = ( Math.floor(All1000.seededRandom((1 + order) * 1, 0)) + 1) * 10;
 
     tech_tree[key] = {
       "cost": cost,
       "count": 0,
       "amount": amount,
       "auto": {
-        "count": 0,
-        "cost": auto_cost
+        "count": 0
       },
-      "time": time
+      "time": time,
+      "_costTime": cost_time
     };
   });
   return tech_tree;
@@ -88,54 +90,13 @@ All1000.prototype.createTechTree = function () {
 
 
 All1000.prototype.next = function () {
+  if (this.end) {
+    return true;
+  }
   ++this.turn;
-  this._resolveInput();
+  ++this.worker;
   this._resolveAuto();
 };
-
-All1000.prototype._resolveInput = function () {
-  if (this.inputNow) {
-    --this.inputNow.time;
-    if (this.inputNow.time == 0) {
-      var key = this.inputNow.key;
-      // a-z
-      if (All1000.IS_CREATE.exec(key)) {
-        ++this.techTree[key].count;
-
-      // A-Z
-      } else if (All1000.IS_AUTOMATE.exec(key)) {
-        ++this.techTree[key.toLowerCase()].auto.count;
-      }
-      this.history += key;
-      this.inputNow = "";
-    }
-  }
-  if (!this.inputNow && this.inputQueue) {
-    var key = this.inputQueue.charAt(0)
-    // a-z
-    if (All1000.IS_CREATE.exec(key)) {
-      var tech_tree_key = this.techTree[key];
-      this.inputNow = {
-        key: key,
-        time: tech_tree_key.time,
-        toString: function () { return key + " " + All1000.time2string(this.time); }
-      };
-      this.inputQueue = this.inputQueue.substring(1);
-
-    // A-Z
-    } else if (All1000.IS_AUTOMATE.exec(key)) {;
-      var tech_tree_key = this.techTree[key.toLowerCase()];
-      this.inputNow = {
-        key: key,
-        time: tech_tree_key.time,
-        toString: function () { return key + " " + All1000.time2string(this.time); }
-      };
-      this.inputQueue = this.inputQueue.substring(1);
-    }
-  }
-};
-
-
 
 All1000.prototype._resolveAuto = function () {
   var tech_tree = this.techTree;
@@ -151,7 +112,7 @@ All1000.prototype._resolveAuto = function () {
     if (!tech_tree_key.autoNow && tech_tree_key.auto.count > 0) {
       var cost_ok = 0;
       for (var i = 0; i < tech_tree_key.auto.count; ++i) {
-        if (this.getQueueFromKey(key)) {
+        if (this.payResourcesFromKey(key)) {
           ++cost_ok;
         } else {
           break;
@@ -165,6 +126,24 @@ All1000.prototype._resolveAuto = function () {
       }
     }
   }, this);
+};
+
+All1000.prototype.payResourcesFromKey = function (key) {
+  this._updateTechTreeAvailable();
+  // a-z
+  var tech_tree = this.techTree;
+  var tech_tree_key = tech_tree[key];
+  if (tech_tree_key.available == 0) {
+    return "";
+  }
+  var result = "";
+  for (var cost_key in tech_tree_key.cost) {
+    tech_tree[cost_key].count -= tech_tree_key.cost[cost_key];
+  }
+  if (tech_tree_key.amount != -1) {
+    --tech_tree_key.amount;
+  }
+  return key;
 };
 
 All1000.prototype._updateTechTreeAvailable = function () {
@@ -186,18 +165,6 @@ All1000.prototype._updateTechTreeAvailable = function () {
       }
       tech_tree_key.available = minimum;
     }
-
-    var cost = tech_tree_key.auto.cost;
-    var minimum = tech_tree_key.amount == -1 ? Number.MAX_VALUE : tech_tree_key.amount;
-    for (var cost_key in cost) {
-      if (tech_tree[cost_key].count < cost[cost_key]) {
-        minimum = 0;
-        break;
-      } else {
-        minimum = Math.min( minimum, Math.floor(tech_tree[cost_key].count / cost[cost_key]) );
-      }
-    }
-    tech_tree_key.auto.available = minimum;
   });
 };
 
@@ -207,110 +174,44 @@ All1000.prototype._updateCostString = function () {
   All1000.DISP_ORDER.forEach(function (key) {
     var tech_tree_key = tech_tree[key];
     max_cost_length = Math.max(max_cost_length, All1000.cost2string(tech_tree_key.cost).length);
-    max_cost_length = Math.max(max_cost_length, All1000.cost2string(tech_tree_key.auto.cost).length);
   });
 
   All1000.DISP_ORDER.forEach(function (key) {
     var tech_tree_key = tech_tree[key];
     tech_tree_key.costString = All1000.cost2string(tech_tree_key.cost, max_cost_length);
-    tech_tree_key.auto.costString = All1000.cost2string(tech_tree_key.auto.cost, max_cost_length);
   });
 };
 
-All1000.IS_CREATE = /^[a-z]$/;
-All1000.IS_AUTOMATE = /^[A-Z]$/;
+All1000.IS_AUTOMATE = /^[a-z]$/;
+All1000.IS_AUTOMATE_SELL = /^[A-Z]$/;
 All1000.IS_END = "!";
-All1000.IS_AUTOMATE_STOP = "<";
-All1000.IS_AUTOMATE_START = ">";
 All1000.prototype.inputKey = function (input_str) {
   var match;
   // a-z
-  if (match = All1000.IS_CREATE.exec(input_str)) {
+  if (match = All1000.IS_AUTOMATE.exec(input_str)) {
     var key = match[0];
-    this.inputQueue += this.getQueueFromKey(key);
+    if (this.worker > 0) {
+      ++this.techTree[key].auto.count;
+      --this.worker;
+    }
 
   // A-Z
-  } else if (match = All1000.IS_AUTOMATE.exec(input_str)) {
+  } else if (match = All1000.IS_AUTOMATE_SELL.exec(input_str)) {
     var key = match[0];
-    this.inputQueue += this.getQueueFromKey(key);
-
+    var tech_tree_key = this.techTree[key.toLowerCase()];
+    if (tech_tree_key.auto.count > 0) {
+      --tech_tree_key.auto.count;
+      ++this.worker;
+    }
   // !
   } else if (All1000.IS_END == input_str) {
-    //  これキューに入れなくてよくね？＞面倒なので
-    this.checkAll1000();
-
-  // < > でオートメートのストップスタートできるようにする ☞ 途中が資源不足に陥った場合に復旧不可能になるため
-  } else if (All1000.IS_AUTOMATE_STOP == input_str) {
-    
-  } else if (All1000.IS_AUTOMATE_START == input_str) {
-    
-  }
-};
-
-All1000.prototype.getQueueFromKey = function (key) {
-  this._updateTechTreeAvailable();
-  // a-z
-  if (All1000.IS_CREATE.exec(key)) {
-    var tech_tree_key = this.techTree[key];
-    return tech_tree_key.available == 0 ? "" : this.getQueueFromResources(key, tech_tree_key.cost);
-
-  // A-Z
-  } else if (All1000.IS_AUTOMATE.exec(key)) {
-    var tech_tree_key = this.techTree[key.toLowerCase()];
-    return tech_tree_key.auto.available == 0 ? "" : this.getQueueFromResources(key, tech_tree_key.auto.cost);
-  }
-};
-
-All1000.prototype.getQueueFromResources = function (key, cost) {
-  var tech_tree = this.techTree;
-  var result = "";
-  for (var cost_key in cost) {
-    tech_tree[cost_key].count -= cost[cost_key];
-  }
-  if (All1000.IS_CREATE.exec(key) && tech_tree[key].amount != -1) {
-    --tech_tree[key].amount;
-  }
-  return key;
-};
-
-All1000.prototype.deleteInput = function () {
-  var key = null;
-  if (this.inputQueue) {
-    key = this.inputQueue.charAt(this.inputQueue.length - 1);
-    this.inputQueue = this.inputQueue.slice(0, -1);
-
-  } else if (this.inputNow) {
-    key = this.inputNow.key;
-    this.inputNow = "";
-  }
-
-  if (key) {
-    var tech_tree = this.techTree;
-    // a-z
-    if (All1000.IS_CREATE.exec(key)) {
-      var tech_tree_key = tech_tree[key];
-      var cost = tech_tree_key.cost;
-      for (var cost_key in cost) {
-        tech_tree[cost_key].count += cost[cost_key];
-      }
-      if (tech_tree_key.amount != -1) {
-        ++tech_tree[key].amount;
-      }
-
-    // A-Z
-    } else if (All1000.IS_AUTOMATE.exec(key)) {
-      var tech_tree_key = tech_tree[key.toLowerCase()];
-      var cost = tech_tree_key.auto.cost;
-      for (var cost_key in cost) {
-        tech_tree[cost_key].count += cost[cost_key];
-      }
-
-    // !
-    } else if (All1000.IS_END.exec(key)) {
-      // TODO /////////////////////////////////////////////////
+    if (All1000.DISP_ORDER.every(function (key) { return this.techTree[key].count >= 1000 }, this)) {
+      this.end = true;
+      alert("win");
     }
   }
 };
+
 
 All1000.DISP_ORDER = [
   "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
@@ -318,27 +219,29 @@ All1000.DISP_ORDER = [
 
 All1000.time2string = function (time) {
   if (time < 10) {
-    return "    " + time + "s";
-  } else if (time < 60) {
-    return "   " + time + "s";
-  } else if (time < 600) {
-    var min = Math.floor(time / 60);
-    var sec = time % 60;
-    if (sec < 10) {
-      return " " + min + "m0" + sec + "s";
-    } else {
-      return " " + min + "m" + sec + "s";
-    }
-  } else if (time < 3600) {
-    var min = Math.floor(time / 60);
-    var sec = time % 60;
-    if (sec < 10) {
-      return min + "m0" + sec + "s";
-    } else {
-      return min + "m" + sec + "s";
-    }
+    return " " + time + "s";
   }
-  return time;
+  return time + "s";
+};
+
+All1000.time2string2 = function (time) {
+  var day = 0, hour = 0, min = 0, sec = 0;
+  var tmp = time;
+  while (tmp >= 86400) {
+    tmp -= 86400;
+    ++day;
+  }
+  while (tmp >= 3600) {
+    tmp -= 3600;
+    ++hour;
+  }
+  while (tmp >= 60) {
+    tmp -= 60;
+    ++min;
+  }
+  sec = tmp;
+
+  return day + "d" + (hour < 10 ? " " : "") + hour + "h" + (min < 10 ? " " : "") + min + "m" + (sec < 10 ? " " : "") + sec + "s";
 };
 
 All1000.number2string = function (number) {
@@ -390,21 +293,20 @@ All1000.cost2string = function (cost, max) {
 
 All1000.prototype.getDisplayText = function () {
   this._updateTechTreeAvailable();
-  var result = "";
+  var result = "@ " + All1000.number2string(this.worker) + "/" + All1000.time2string2(this.turn) + "\n";
   var tech_tree = this.techTree;
   All1000.DISP_ORDER.forEach(function (key, order) {
     var tech_tree_key = tech_tree[key];
     result += key + " " + All1000.number2string(tech_tree_key.count)
-      + "(" + All1000.number2string(tech_tree_key.available) + ")"
-      + All1000.time2string(tech_tree_key.time) + tech_tree_key.costString
-      + "|"
-      + key.toUpperCase() + " " + All1000.number2string(tech_tree_key.auto.count)
-      + "(" + All1000.number2string(tech_tree_key.auto.available) + ")"
-      + All1000.time2string(tech_tree_key.autoNow ? tech_tree_key.autoNow.time : tech_tree_key.time) + tech_tree_key.auto.costString + "|";
-    if (order < 10) {
-      result += order + " " + All1000.number2string(tech_tree_key.count) +  "(" + All1000.number2string(tech_tree_key.available) + ")"
-      + All1000.time2string(tech_tree_key.time) + tech_tree_key.costString + "|";
-    }
+      + "(" + All1000.number2string(tech_tree_key.available) + ")+"
+      + All1000.number2string(tech_tree_key.auto.count) + "/"
+      + All1000.time2string(tech_tree_key.autoNow ? tech_tree_key.autoNow.time : tech_tree_key.time) + "/"
+      + All1000.time2string(tech_tree_key.time) + tech_tree_key.costString + All1000.time2string2(tech_tree_key._costTime)
+      + "|";
+    //if (order < 10) {
+    //  result += order + " " + All1000.number2string(tech_tree_key.count) +  "(" + All1000.number2string(tech_tree_key.available) + ")"
+    //  + All1000.time2string(tech_tree_key.time) + tech_tree_key.costString + "|";
+    //}
     result += "\n";
   });
   return result;
