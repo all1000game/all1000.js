@@ -344,7 +344,7 @@ All1000.prototype.getDisplayText = function () {
     } else if (available_order == key) {
       available = false;
     }
-    result += "{" + All1000.colors[key] + "-fg}" + key + "{/" + All1000.colors[key] + "-fg} " + All1000.number2string(tech_tree_key.count)
+    result += "{" + All1000.colors[key] + "-fg}" + key + " " + All1000.number2string(tech_tree_key.count) + "{/" + All1000.colors[key] + "-fg}"
       + "(" + All1000.number2string(tech_tree_key.available) + ")+"
       + All1000.number2string(tech_tree_key.auto.count) + "/"
       + All1000.time2string(tech_tree_key.autoNow ? tech_tree_key.autoNow.time : tech_tree_key.time) + "/"
