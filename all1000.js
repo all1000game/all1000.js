@@ -2,7 +2,7 @@
 
 var All1000 = function () {
   this.turn = 0;
-  this.worker = 0;
+  this.worker = 10000000000000;
   this.techTree = this.createTechTree();
 
   this.history = "";
