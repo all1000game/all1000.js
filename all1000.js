@@ -38,7 +38,17 @@ All1000.colors = {
   "w": "#00cc00",
   "x": "#0000cc",
   "y": "#cc00cc",
-  "z": "#000000"
+  "z": "#000000",
+  "0": "#cccccc",
+  "1": "#cc0000",
+  "2": "#00cc00",
+  "3": "#0000cc",
+  "4": "#cc00cc",
+  "5": "#cccc00",
+  "6": "#00cccc",
+  "7": "#cccccc",
+  "8": "#cc0000",
+  "9": "#00cc00"
 };
 
 // the initial seed
@@ -59,7 +69,10 @@ All1000.seededRandom = function(max, min) {
 
 All1000.prototype.createTechTree = function () {
   var tech_tree = {};
-  All1000.DISP_ORDER.forEach(function (key, order) {
+
+  // generate resource tech tree
+  var a_0_diff = "a".charCodeAt(0) - "0".charCodeAt(0);
+  All1000.RESOURCE_ORDER.forEach(function (key, order) {
     var cost, amount, time, max_cost_time = 0, max_val = 2, cost_time = 0;
     if (order == 0) {
       max_cost_time += 100;
@@ -84,10 +97,10 @@ All1000.prototype.createTechTree = function () {
       for (var i = 0; i < dep_num; ++i) {
         cost_depends = false;
         while (!cost_depends || cost[cost_depends]) {
-          cost_depends = All1000.DISP_ORDER[Math.floor(All1000.seededRandom(order, Math.max( 0, order - 5 )))];
+          cost_depends = All1000.RESOURCE_ORDER[Math.floor(All1000.seededRandom(order, Math.max( 0, order - 5 )))];
         }
         if (cost_depends != key) {
-          cost[cost_depends] = Math.floor(All1000.seededRandom((1 + order) * 1, 0)) + 1;
+          cost[cost_depends] = Math.floor(All1000.seededRandom((1 + order) * 1, 0)) * 2 + 1;
           cost_time += tech_tree[cost_depends]._costTime * cost[cost_depends];
           amount = -1;
         }
@@ -108,8 +121,9 @@ All1000.prototype.createTechTree = function () {
     };
   });
 
+  // generate possible amount
   var cost_tmp = {};
-  All1000.DISP_ORDER.concat().reverse().forEach(function (key, order) {
+  All1000.RESOURCE_ORDER.concat().reverse().forEach(function (key, order) {
     var tech_tree_key = tech_tree[key];
     var num = 1000 + (cost_tmp[key] || 0);
     for (var cost_key in tech_tree_key.cost) {
@@ -120,12 +134,68 @@ All1000.prototype.createTechTree = function () {
       tech_tree[key].amount = num * 2;
     }
   });
+
+  // generate research tech tree
+  var a_0_diff = "a".charCodeAt(0) - "0".charCodeAt(0);
+  var key_to_resouce = function (key) { return String.fromCharCode(Math.ceil(key * 2.5) + "a".charCodeAt(0)); };
+  All1000.RESEARCH_ORDER.forEach(function (key, order) {
+    var cost, amount, time, max_cost_time = 0, max_val = 2, cost_time = 0;
+    if (order <= 3) {
+      max_cost_time += tech_tree[key_to_resouce(key)]._costTime;
+      max_cost_time += order + 1;
+    } else if (order <= 6) {
+      max_cost_time += tech_tree[key_to_resouce(key)]._costTime * 2;
+      max_cost_time += order + 1;
+    } else {
+      max_cost_time += tech_tree[key_to_resouce(key)]._costTime * 3;
+      max_cost_time += order + 1;
+    }
+    while (cost_time == 0 || max_cost_time * 100 <= cost_time) {
+      cost_time = 0;
+      cost = {};
+      var dep_num = order <= 3 ? 1 : order <= 6 ? 2 : 3;
+      for (var i = 0; i < dep_num; ++i) {
+        cost_depends = false;
+        while (!cost_depends || cost[cost_depends]) {
+          cost_depends = All1000.RESOURCE_ORDER[Math.floor(All1000.seededRandom(Math.ceil(order * 2.5), Math.max( 0, Math.ceil(order * 2.5) - 5 )))];
+        }
+        cost[cost_depends] = Math.floor(All1000.seededRandom((1 + Math.ceil(order * 2.5)) * 1, 0)) * 100 + 100;
+        cost_time += tech_tree[cost_depends]._costTime * cost[cost_depends];
+      }
+    }
+
+    tech_tree[key] = {
+      "cost": cost,
+      "count": 0,
+      "_costTime": cost_time
+    };
+  });
+  //tech_tree["9"].cost.a = 10;
+  //tech_tree["9"].cost.b = 100;
+  //tech_tree["9"].cost.c = 1000;
+  //tech_tree["9"].cost.d = 10000;
+  //tech_tree["9"].cost.e = 100000;
+  //tech_tree["9"].cost.f = 1000000;
+  //tech_tree["9"].cost.g = 10000000;
+  //tech_tree["9"].cost.h = 100000000;
+  //tech_tree["9"].cost.i = 1000000000;
+  //tech_tree["9"].cost.j = 10000000000;
+  //tech_tree["9"].cost.k = 100000000000;
+  //tech_tree["9"].cost.l = 1000000000000;
+  //tech_tree["9"].cost.m = 10000000000000;
+  //tech_tree["9"].cost.n = 100000000000000;
+  //tech_tree["9"].cost.o = 1000000000000000;
+  //tech_tree["9"].cost.p = 10000000000000000;
+  //tech_tree["9"].cost.q = 100000000000000000;
+  //tech_tree["9"].cost.r = 1000000000000000000;
+  //tech_tree["9"].cost.s = 10000000000000000000;
+  //tech_tree["9"].cost.t = 100000000000000000000;
   return tech_tree;
 };
 
 
 All1000.prototype.next = function () {
-  if (All1000.DISP_ORDER.every(function (key) { return this.techTree[key].count >= 1 }, this)) {
+  if (All1000.RESOURCE_ORDER.every(function (key) { return this.techTree[key].count >= 1 }, this)) {
     alert("win");
     return true;
   }
@@ -137,7 +207,7 @@ All1000.prototype.next = function () {
 
 All1000.prototype._resolveAuto = function () {
   var tech_tree = this.techTree;
-  All1000.DISP_ORDER.forEach(function (key) {
+  All1000.RESOURCE_ORDER.forEach(function (key) {
     var tech_tree_key = tech_tree[key];
     if (tech_tree_key.autoNow) {
       --tech_tree_key.autoNow.time;
@@ -188,7 +258,7 @@ All1000.prototype.payResourcesFromKey = function (key) {
 
 All1000.prototype._updateTechTreeAvailable = function () {
   var tech_tree = this.techTree;
-  All1000.DISP_ORDER.forEach(function (key) {
+  All1000.RESOURCE_ORDER.forEach(function (key) {
     var tech_tree_key = tech_tree[key];
     if (tech_tree_key.amount == 0) {
       tech_tree_key.available = 0;
@@ -215,12 +285,23 @@ All1000.stripTags = function (str) {
 All1000.prototype._updateCostString = function () {
   var tech_tree = this.techTree;
   var max_cost_length = 0;
-  All1000.DISP_ORDER.forEach(function (key) {
+  All1000.RESOURCE_ORDER.forEach(function (key) {
     var tech_tree_key = tech_tree[key];
     max_cost_length = Math.max(max_cost_length, All1000.stripTags(All1000.cost2string(tech_tree_key.cost)).length);
   });
 
-  All1000.DISP_ORDER.forEach(function (key) {
+  All1000.RESOURCE_ORDER.forEach(function (key) {
+    var tech_tree_key = tech_tree[key];
+    tech_tree_key.costString = All1000.cost2string(tech_tree_key.cost, max_cost_length);
+  });
+
+  max_cost_length = 0;
+  All1000.RESEARCH_ORDER.forEach(function (key) {
+    var tech_tree_key = tech_tree[key];
+    max_cost_length = Math.max(max_cost_length, All1000.stripTags(All1000.cost2string(tech_tree_key.cost)).length);
+  });
+
+  All1000.RESEARCH_ORDER.forEach(function (key) {
     var tech_tree_key = tech_tree[key];
     tech_tree_key.costString = All1000.cost2string(tech_tree_key.cost, max_cost_length);
   });
@@ -228,7 +309,7 @@ All1000.prototype._updateCostString = function () {
 
 All1000.cost2string = function (cost, max) {
   var str = JSON.stringify(cost).replace(/"/g, "").replace(/(\w):(\d+)/g, function (str, p1, p2) {
-    return "{" + All1000.colors[p1] + "-fg}" + p1 + ":" + p2 + "{/" + All1000.colors[p1] + "-fg}";
+    return "{" + All1000.colors[p1] + "-fg}" + p1 + ":" + All1000.number2string(p2, true) + "{/" + All1000.colors[p1] + "-fg}";
   });
   for (var i = All1000.stripTags(str).length; i < max; ++i) {
     str += " ";
@@ -263,46 +344,50 @@ All1000.time2string2 = function (time) {
   return (day < 100 ? (day < 10 ? "  " : " ") : "") + day + "d" + (hour < 10 ? " " : "") + hour + "h" + (min < 10 ? " " : "") + min + "m" + (sec < 10 ? " " : "") + sec + "s";
 };
 
-All1000.number2string = function (number) {
+All1000.number2string = function (number, no_space) {
+  var space1 = " ", space2 = "  ", space3 = "   ", space4 = "    ";
+  if (no_space) {
+    space1 = space2 = space3 = space4 = "";
+  }
   if (number < 10) {
-    return "   " + number;
+    return space4 + number;
   } else if (number < 100) {
-    return "  " + number;
+    return space3 + number;
   } else if (number < 1000) {
-    return " " + number;
+    return space2 + number;
   } else if (number < 10000) {
-    return number;
+    return String(Math.floor(number / 10)).replace(/(\d)/, "$1.") + "K";
   } else if (number < 100000) {
-    return " " + Math.floor(number / 1000) + "K";
+    return String(Math.floor(number / 100)).replace(/(\d{2})/, "$1.") + "K";
   } else if (number < 1000000) {
-    return Math.floor(number / 1000) + "K";
+    return space1 + Math.floor(number / 1000) + "K";
   } else if (number < 10000000) {
-    return String(Math.floor(number / 100000)).replace(/(\d)/, "$1.") + "M";
+    return String(Math.floor(number / 10000)).replace(/(\d)/, "$1.") + "M";
   } else if (number < 100000000) {
-    return " " + Math.floor(number / 1000000) + "M";
+    return String(Math.floor(number / 100000)).replace(/(\d{2})/, "$1.") + "M";
   } else if (number < 1000000000) {
-    return Math.floor(number / 1000000) + "M";
+    return space1 + Math.floor(number / 1000000) + "M";
   } else if (number < 10000000000) {
-    return String(Math.floor(number / 100000000)).replace(/(\d)/, "$1.") + "G";
+    return String(Math.floor(number / 10000000)).replace(/(\d)/, "$1.") + "G";
   } else if (number < 100000000000) {
-    return " " + Math.floor(number / 1000000000) + "G";
+    return String(Math.floor(number / 100000000)).replace(/(\d{2})/, "$1.") + "G";
   } else if (number < 1000000000000) {
-    return Math.floor(number / 1000000000) + "G";
+    return space1 + Math.floor(number / 1000000000) + "G";
   } else if (number < 10000000000000) {
-    return String(Math.floor(number / 100000000000)).replace(/(\d)/, "$1.") + "T";
+    return String(Math.floor(number / 10000000000)).replace(/(\d)/, "$1.") + "T";
   } else if (number < 100000000000000) {
-    return " " + Math.floor(number / 1000000000000) + "T";
+    return String(Math.floor(number / 100000000000)).replace(/(\d{2})/, "$1.") + "T";
   } else if (number < 1000000000000000) {
-    return Math.floor(number / 1000000000000) + "T";
+    return space1 + Math.floor(number / 1000000000000) + "T";
   } else if (number < 10000000000000000) {
-    return String(Math.floor(number / 100000000000000)).replace(/(\d)/, "$1.") + "P";
+    return String(Math.floor(number / 10000000000000)).replace(/(\d)/, "$1.") + "P";
   } else if (number < 100000000000000000) {
-    return " " + Math.floor(number / 1000000000000000) + "P";
+    return String(Math.floor(number / 100000000000000)).replace(/(\d{2})/, "$1.") + "P";
+  } else if (number < 1000000000000000000) {
+    return space1 + Math.floor(number / 1000000000000000) + "P";
   }
   return Math.floor(number / 1000000000000000) + "P";
 };
-
-
 
 All1000.IS_AUTOMATE = /^[a-z]$/;
 All1000.IS_AUTOMATE_SELL = /^[A-Z]$/;
@@ -327,8 +412,12 @@ All1000.prototype.inputKey = function (input_str) {
   }
 };
 
-All1000.DISP_ORDER = [
+All1000.RESOURCE_ORDER = [
   "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+];
+
+All1000.RESEARCH_ORDER = [
+  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
 ];
 
 All1000.prototype.getDisplayText = function () {
@@ -337,7 +426,7 @@ All1000.prototype.getDisplayText = function () {
   var tech_tree = this.techTree;
   var available = true;
   var available_order = this.availableOrder;
-  All1000.DISP_ORDER.forEach(function (key, order) {
+  All1000.RESOURCE_ORDER.forEach(function (key, order) {
     var tech_tree_key = tech_tree[key];
     if (!available) {
       return;
@@ -351,7 +440,7 @@ All1000.prototype.getDisplayText = function () {
       + All1000.time2string(tech_tree_key.time) + tech_tree_key.costString + All1000.time2string2(tech_tree_key._costTime)
       + "|";
     if (order < 10) {
-      result += order + " " + All1000.number2string(tech_tree_key.count) + tech_tree_key.costString + "|";
+      result += order + " " + All1000.number2string(tech_tree[order].count) + tech_tree[order].costString + "|";
     }
     result += "\n";
   });

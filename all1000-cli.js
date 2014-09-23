@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-console.info("init");
-
 var blessed = require('blessed');
 var screen = blessed.screen();
 screen.key(['escape', 'C-c'], function(ch, key) {
@@ -58,6 +56,5 @@ var timer = setInterval(function () {
     clearInterval(timer);
   }
   displayScreen();
-}, 250);
-//}, 725);
+}, 725);
 displayScreen();

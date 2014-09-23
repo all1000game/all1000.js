@@ -22,7 +22,6 @@ var timer = setInterval(function () {
     clearInterval(timer);
   }
   displayScreen();
-}, 250);
-//}, 725);
+}, 725);
 
 displayScreen();
