@@ -3,7 +3,7 @@
 var all1000 = new All1000();
 
 
-document.write('<pre id="title">all1000 v' + All1000.VERSION + ' #' + All1000.seed  + '\na-z - ++add worker, A-Z - ++remove worker</pre>');
+document.write('<pre id="title">all1000 v' + All1000.VERSION + ' #' + All1000.seed  + '\na-z - set worker, A-Z - remove worker, 0-9 - research</pre>');
 document.write('<pre id="screen"></pre>');
 
 var displayScreen = function () {

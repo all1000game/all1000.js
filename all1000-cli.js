@@ -36,7 +36,7 @@ var display_box = blessed.box({
 screen.append(title_box);
 screen.append(display_box);
 
-title_box.setContent('all1000 v' + All1000.VERSION + ' #' + All1000.seed  + '\na-z - ++add worker, A-Z - ++remove worker');
+title_box.setContent('all1000 v' + All1000.VERSION + ' #' + All1000.seed  + '\na-z - set worker, A-Z - remove worker, 0-9 - research');
 display_box.setContent(all1000.getDisplayText());
 
 var displayScreen = function () {
